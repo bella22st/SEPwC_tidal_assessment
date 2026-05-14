@@ -16,7 +16,7 @@ VERBOSE = True
 
 # ============ DONT CHANGE FNs ============
 
-def read_tidal_data(dirname):
+def read_tidal_data(dirname: str):
     """Function: read_tidal_data
     Reads the txt files as pandas df
 
@@ -24,23 +24,30 @@ def read_tidal_data(dirname):
     Return: df 
     """
 
-    log("Filename: " + dirname)
+    log("Directory: " + dirname)
+
+    all_dfs = []
+
+    for filename in sorted(glob.glob(dirname + "/*.txt")):
+
+        log("Filename: " + filename)
+        df = pd.read_csv(
+        filename,  
+        skiprows=12,
+        sep=r'\s+',)
+
+        df.columns = ['Cycle', 'Date', 'Time', 'ASLVBG02', 'Residual']
+        df['DateTime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
+        df = df.drop(['Date', 'Time'], axis=1)
+        df.set_index('DateTime', inplace=True)
+        all_dfs.append(df)
+
+    combined_df = pd.concat(all_dfs)
     
-    df = pd.read_csv('data/whitby/2000WHI.txt', 
-                  skiprows=12,
-                    sep=r'\s+',)
+    print(combined_df.head())
+    print(combined_df.shape)
 
-    df.columns = ['Cycle', 'Date', 'Time', 'ASLVBG02', 'Residual']
-
-    df['DateTime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
-    df = df.drop(['Date', 'Time'], axis=1)
-    df.set_index('DateTime', inplace=True)
-    print(df.head())
-    print(df.shape)
-    
-    return df 
-
-    return
+    return combined_df 
     
 def extract_single_year_remove_mean(year, data):
 
@@ -97,8 +104,8 @@ def main(args_list=None):
 
     print("Add your code here to do things!")
 
-    read_tidal_data(dirname)
-
+    data = read_tidal_data(dirname)
+    log(data)
     
 
 if __name__ == '__main__':
