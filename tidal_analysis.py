@@ -1,16 +1,17 @@
-"""UK Tidal analysis - Calculate tidal constituents and RSL from tide gauge data."""
+"""UK Tidal analysis"""
 # import the modules we need
-import glob
-import pandas as pd
 import datetime
+import glob
 import os
+import math
+import argparse
+import pandas as pd
 import numpy as np
 import uptide
 import pytz
-import math
 from scipy import stats
 import matplotlib.dates as mdates
-import argparse
+
 
 
 # ============ DONT CHANGE FNs ============
@@ -34,8 +35,7 @@ def read_tidal_data(filename: str) -> pd.DataFrame:
     df["DateTime"] = pd.to_datetime(
         df["Date"].astype(str) + " " + df["Time"].astype(str),
         format="%Y/%m/%d %H:%M:%S",
-        errors="coerce",
-    )
+        errors="coerce",)
 
     # Convert numeric fields to NaN if they contain invalid characters
     df["Sea Level"] = pd.to_numeric(df["Sea Level"], errors="coerce")
@@ -43,12 +43,12 @@ def read_tidal_data(filename: str) -> pd.DataFrame:
 
     df = df[["DateTime", "Time", "Sea Level", "Residual"]]
     df = df[df["DateTime"].notna()]
-    
+
     # Set DateTime as the index
     df.set_index("DateTime", inplace=True)
 
     return df
-    
+
 def extract_single_year_remove_mean(year, data):
     """ Extract a single year of tidal data and remove the mean sea level """
 
@@ -88,10 +88,9 @@ def sea_level_rise(data):
     """Run linear regression to calculate sea level rise (metres per day)"""
     df = data.copy()
 
-    # Clean numeric sea level
+
     df["Sea Level"] = pd.to_numeric(df["Sea Level"], errors="coerce")
 
-    # Use the actual datetime information; the index is the correct full datetime field.
     if isinstance(df.index, pd.DatetimeIndex):
         times = df.index
     elif "DateTime" in df.columns:
@@ -101,16 +100,15 @@ def sea_level_rise(data):
 
     df = df.assign(_Time=times)
 
-    # Drop invalid rows
     clean = df.dropna(subset=["_Time", "Sea Level"])
 
-    # Convert time using REQUIRED method (date2num converts to days since 1970)
+
     x = mdates.date2num(clean["_Time"])
     y = clean["Sea Level"].to_numpy()
 
     result = stats.linregress(x, y)
 
-    # Return slope (metres per day) and p-value
+
     return result.slope, result.pvalue
 
 
@@ -142,7 +140,7 @@ def tidal_analysis(data, constituents, start_datetime):
 
 def get_longest_contiguous_data(data):
 
-    return 
+    return
 
 # ==============================================
 
@@ -157,20 +155,20 @@ def tide_table(station_name, m2, s2):
     s2 (float or str): S2 amplitude in meters
     """
 
-    # Ensure values are strings with units
+
     m2_str = f"{m2} m" if isinstance(m2, (int, float)) else str(m2)
     s2_str = f"{s2} m" if isinstance(s2, (int, float)) else str(s2)
 
     table = (
         f"Station Name\tM2 Amplitude\tS2 Amplitude\n"
-        f"{station_name}\t{m2_str}\t{s2_str}"
-    )
+        f"{station_name}\t{m2_str}\t{s2_str}")
 
     return table
 
 
 
 def main(args_list=None):
+    """Program entry point."""
 
     parser = argparse.ArgumentParser(
                      prog="UK Tidal analysis",
@@ -193,7 +191,7 @@ def main(args_list=None):
     for filename in sorted(glob.glob(os.path.join(dirname, "*.txt"))):
         data = read_tidal_data(filename)
         running_data = join_data(running_data, data)
-    
+
     constituents  = ['M2', 'S2']
     tz = pytz.timezone("utc")
     start_datetime = datetime.datetime(1946,6,1,0,0,0, tzinfo=tz)
