@@ -63,6 +63,7 @@ def extract_section_remove_mean(start, end, data):
     """Extract a section of data between two dates and remove mean sea level"""
 
     start_date = pd.to_datetime(start, format="%Y%m%d")
+
     # We add a day since we want the start and end date to be inclusive
     end_date = pd.to_datetime(end, format="%Y%m%d") + pd.Timedelta(days=1)
 
@@ -87,8 +88,29 @@ def sea_level_rise(data):
     return
 
 def tidal_analysis(data, constituents, start_datetime):
+    """Calculate tidal amplitudes and phases from sea level data."""
 
-    return
+    start_datetime = pd.Timestamp(start_datetime).tz_localize(None)
+
+    # Remove NaN values
+    data_clean = data.dropna(subset=["Sea Level"])
+
+    # Convert times into seconds since the start date
+    t = (data_clean.index - pd.Timestamp(start_datetime)).total_seconds().to_numpy()
+
+    # Get sea level values
+    eta = data_clean["Sea Level"].to_numpy()
+
+    # Set up tidal constituents
+    tide = uptide.Tides(constituents)
+
+    tide.set_initial_time(start_datetime)
+
+    # Run tidal analysis
+    amp, pha = uptide.harmonic_analysis(tide, eta, t)
+
+    return amp, pha
+
 
 def get_longest_contiguous_data(data):
 
