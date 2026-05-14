@@ -53,14 +53,23 @@ def extract_single_year_remove_mean(year, data):
 
     year_data = data[data.index.year == int(year)].copy()
 
-    mean_sea_level = year_data["Sea Level"].mean ()
+    mean_sea_level = year_data["Sea Level"].mean()
     year_data["Sea Level"] = year_data["Sea Level"] - mean_sea_level 
 
     return year_data
 
 
 def extract_section_remove_mean(start, end, data):
-    year_data = 0
+    """Extract a section of data between two dates and remove mean sea level"""
+
+    start_date = pd.to_datetime(start, format="%Y%m%d")
+    # We add a day since we want the start and end date to be inclusive
+    end_date = pd.to_datetime(end, format="%Y%m%d") + pd.Timedelta(days=1)
+
+    year_data = data[(data.index >= start_date) & (data.index < end_date)].copy()
+
+    mean_sea_level = year_data["Sea Level"].mean()
+    year_data["Sea Level"] = year_data["Sea Level"] - mean_sea_level
 
     return year_data
 
