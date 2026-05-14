@@ -9,9 +9,36 @@ import math
 from scipy import stats
 import matplotlib.dates as mdates
 import argparse
+import glob
+
+VERBOSE = True
 
 
-def read_tidal_data(filename):
+# ============ DONT CHANGE FNs ============
+
+def read_tidal_data(dirname):
+    """Function: read_tidal_data
+    Reads the txt files as pandas df
+
+    Input: txt data
+    Return: df 
+    """
+
+    log("Filename: " + dirname)
+    
+    df = pd.read_csv('data/whitby/2000WHI.txt', 
+                  skiprows=12,
+                    sep=r'\s+',)
+
+    df.columns = ['Cycle', 'Date', 'Time', 'ASLVBG02', 'Residual']
+
+    df['DateTime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
+    df = df.drop(['Date', 'Time'], axis=1)
+    df.set_index('DateTime', inplace=True)
+    print(df.head())
+    print(df.shape)
+    
+    return df 
 
     return
     
@@ -21,6 +48,7 @@ def extract_single_year_remove_mean(year, data):
 
 
 def extract_section_remove_mean(start, end, data):
+    year_data = 0
 
     return year_data
 
@@ -41,6 +69,13 @@ def get_longest_contiguous_data(data):
 
     return 
 
+# ==============================================
+
+def log(str: str):
+    if VERBOSE:
+        print(str)
+    else:
+        pass
 
 def main(args_list=None):
 
@@ -58,9 +93,12 @@ def main(args_list=None):
 
     args = parser.parse_args(args_list)
     dirname = args.directory
-    verbose = args.verbose
+    VERBOSE = args.verbose
 
     print("Add your code here to do things!")
+
+    read_tidal_data(dirname)
+
     
 
 if __name__ == '__main__':

@@ -1,3 +1,5 @@
 .venv
 .pytest_cache
 runme.txt
+data/.DS_Store
+__pycache__
