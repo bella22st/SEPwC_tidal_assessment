@@ -108,7 +108,8 @@ def main(args_list=None):
     for filename in sorted(glob.glob(os.path.join(dirname, "*.txt"))):
         data = read_tidal_data(filename)
         all_dfs.append(data)
-    
+
+    log(all_dfs)
 
 if __name__ == '__main__':
     main()
