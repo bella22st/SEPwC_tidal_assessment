@@ -16,36 +16,56 @@ VERBOSE = True
 
 # ============ DONT CHANGE FNs ============
 
-def read_tidal_data(dirname: str):
-    """Function: read_tidal_data
-    Reads the txt files as pandas df
+def read_tidal_data(dirname: str) -> pd.DataFrame:
+    """Load all txt tidal data files from dirname into one sanitized DataFrame."""
 
-    Input: txt data
-    Return: df 
-    """
-
-    log("Directory: " + dirname)
+    log(f"Directory: {dirname}")
 
     all_dfs = []
 
-    for filename in sorted(glob.glob(dirname + "/*.txt")):
+    for filename in sorted(glob.glob(os.path.join(dirname, "*.txt"))):
+        log(f"Reading file: {filename}")
 
-        log("Filename: " + filename)
         df = pd.read_csv(
-        filename,  
-        skiprows=12,
-        sep=r'\s+',)
+            filename,
+            skiprows=12,
+            sep=r"\s+",
+            names=["Cycle", "Date", "Time", "SeaLevel", "Residual"],
+            engine="python",
+        )
 
-        df.columns = ['Cycle', 'Date', 'Time', 'ASLVBG02', 'Residual']
-        df['DateTime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
-        df = df.drop(['Date', 'Time'], axis=1)
-        df.set_index('DateTime', inplace=True)
+        # Parse combined datetime field
+        df["DateTime"] = pd.to_datetime(
+            df["Date"].astype(str) + " " + df["Time"].astype(str),
+            format="%Y/%m/%d %H:%M:%S",
+            errors="coerce",
+        )
+
+        # Convert DateTime to matplotlib numeric date values
+        df["DateTime"] = mdates.date2num(df["DateTime"])
+
+        # Sanitize numeric fields and remove stray letters
+        df["SeaLevel"] = pd.to_numeric(
+            df["SeaLevel"].astype(str).str.replace(r"[^0-9eE\.-]", "", regex=True),
+            errors="coerce",
+        )
+        df["Residual"] = pd.to_numeric(
+            df["Residual"].astype(str).str.replace(r"[^0-9eE\.-]", "", regex=True),
+            errors="coerce",
+        )
+
+        df = df[["DateTime", "SeaLevel", "Residual"]]
+        df = df[df["DateTime"].notna()]
+
         all_dfs.append(df)
 
-    combined_df = pd.concat(all_dfs)
-    
-    print(combined_df.head())
-    print(combined_df.shape)
+    combined_df = pd.concat(all_dfs, ignore_index=True)
+    combined_df.sort_values("DateTime", inplace=True)
+    combined_df.reset_index(drop=True, inplace=True)
+
+    if VERBOSE:
+        print(combined_df.head())
+        print(combined_df.shape)
 
     return combined_df 
     
