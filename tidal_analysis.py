@@ -49,8 +49,14 @@ def read_tidal_data(filename: str) -> pd.DataFrame:
     return df
     
 def extract_single_year_remove_mean(year, data):
+    """ Extract a single year of tidal data and remove the mean sea level """
 
-    return 
+    year_data = data[data.index.year == int(year)].copy()
+
+    mean_sea_level = year_data["Sea Level"].mean ()
+    year_data["Sea Level"] = year_data["Sea Level"] - mean_sea_level 
+
+    return year_data
 
 
 def extract_section_remove_mean(start, end, data):
