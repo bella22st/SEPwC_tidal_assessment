@@ -40,7 +40,7 @@ def read_tidal_data(filename: str) -> pd.DataFrame:
     df["Sea Level"] = pd.to_numeric(df["Sea Level"], errors="coerce")
     df["Residual"] = pd.to_numeric(df["Residual"], errors="coerce")
 
-    df = df[["DateTime", "Sea Level", "Residual"]]
+    df = df[["DateTime", "Time", "Sea Level", "Residual"]]
     df = df[df["DateTime"].notna()]
     
     # Set DateTime as the index
@@ -60,8 +60,12 @@ def extract_section_remove_mean(start, end, data):
 
 
 def join_data(data1, data2):
+    """Join two tidal datasets into one DataFrame"""
 
-    return 
+    data = pd.concat([data1, data2])
+    data = data.sort_index()
+
+    return data
 
 def sea_level_rise(data):
 
