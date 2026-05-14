@@ -1,4 +1,5 @@
 # import the modules we need
+import glob
 import pandas as pd
 import datetime
 import os
@@ -9,65 +10,43 @@ import math
 from scipy import stats
 import matplotlib.dates as mdates
 import argparse
-import glob
 
 VERBOSE = True
 
 
 # ============ DONT CHANGE FNs ============
 
-def read_tidal_data(dirname: str) -> pd.DataFrame:
+def read_tidal_data(filename: str) -> pd.DataFrame:
     """Load all txt tidal data files from dirname into one sanitized DataFrame."""
 
-    log(f"Directory: {dirname}")
+    log(f"Reading file: {filename}")
 
-    all_dfs = []
+    df = pd.read_csv(
+        filename,
+        skiprows=11,
+        sep=r"\s+",
+        names=["Cycle", "Date", "Time", "Sea Level", "Residual"],
+        engine="python",
+    )
 
-    for filename in sorted(glob.glob(os.path.join(dirname, "*.txt"))):
-        log(f"Reading file: {filename}")
+    # Parse combined datetime field
+    df["DateTime"] = pd.to_datetime(
+        df["Date"].astype(str) + " " + df["Time"].astype(str),
+        format="%Y/%m/%d %H:%M:%S",
+        errors="coerce",
+    )
 
-        df = pd.read_csv(
-            filename,
-            skiprows=12,
-            sep=r"\s+",
-            names=["Cycle", "Date", "Time", "SeaLevel", "Residual"],
-            engine="python",
-        )
+    # Convert numeric fields to NaN if they contain invalid characters
+    df["Sea Level"] = pd.to_numeric(df["Sea Level"], errors="coerce")
+    df["Residual"] = pd.to_numeric(df["Residual"], errors="coerce")
 
-        # Parse combined datetime field
-        df["DateTime"] = pd.to_datetime(
-            df["Date"].astype(str) + " " + df["Time"].astype(str),
-            format="%Y/%m/%d %H:%M:%S",
-            errors="coerce",
-        )
+    df = df[["DateTime", "Sea Level", "Residual"]]
+    df = df[df["DateTime"].notna()]
+    
+    # Set DateTime as the index
+    df.set_index("DateTime", inplace=True)
 
-        # Convert DateTime to matplotlib numeric date values
-        df["DateTime"] = mdates.date2num(df["DateTime"])
-
-        # Sanitize numeric fields and remove stray letters
-        df["SeaLevel"] = pd.to_numeric(
-            df["SeaLevel"].astype(str).str.replace(r"[^0-9eE\.-]", "", regex=True),
-            errors="coerce",
-        )
-        df["Residual"] = pd.to_numeric(
-            df["Residual"].astype(str).str.replace(r"[^0-9eE\.-]", "", regex=True),
-            errors="coerce",
-        )
-
-        df = df[["DateTime", "SeaLevel", "Residual"]]
-        df = df[df["DateTime"].notna()]
-
-        all_dfs.append(df)
-
-    combined_df = pd.concat(all_dfs, ignore_index=True)
-    combined_df.sort_values("DateTime", inplace=True)
-    combined_df.reset_index(drop=True, inplace=True)
-
-    if VERBOSE:
-        print(combined_df.head())
-        print(combined_df.shape)
-
-    return combined_df 
+    return df
     
 def extract_single_year_remove_mean(year, data):
 
@@ -99,10 +78,8 @@ def get_longest_contiguous_data(data):
 # ==============================================
 
 def log(str: str):
-    if VERBOSE:
+    if VERBOSE == True:
         print(str)
-    else:
-        pass
 
 def main(args_list=None):
 
@@ -118,14 +95,19 @@ def main(args_list=None):
                     default=False,
                     help="Print progress")
 
+    global VERBOSE
     args = parser.parse_args(args_list)
     dirname = args.directory
     VERBOSE = args.verbose
+    log(f"verbose={VERBOSE}")
 
-    print("Add your code here to do things!")
+    log("Add your code here to do things!")
 
-    data = read_tidal_data(dirname)
-    log(data)
+    all_dfs = []
+
+    for filename in sorted(glob.glob(os.path.join(dirname, "*.txt"))):
+        data = read_tidal_data(filename)
+        all_dfs.append(data)
     
 
 if __name__ == '__main__':
