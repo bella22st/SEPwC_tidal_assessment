@@ -3,7 +3,7 @@
 import datetime
 import glob
 import os
-import math
+# import math
 import argparse
 import pandas as pd
 import numpy as np
@@ -86,8 +86,8 @@ def join_data(data1, data2):
 
 def sea_level_rise(data):
     """Run linear regression to calculate sea level rise (metres per day)"""
-    df = data.copy()
 
+    df = data.copy()
 
     df["Sea Level"] = pd.to_numeric(df["Sea Level"], errors="coerce")
 
@@ -139,8 +139,28 @@ def tidal_analysis(data, constituents, start_datetime):
 
 
 def get_longest_contiguous_data(data):
+    """Returns the longest stretch of contiguous yearly data."""
 
-    return
+    data = data.sort_values("year")
+
+    longest = []
+    current = []
+
+    years = data["year"].tolist()
+
+    for i, year in enumerate(years):
+        if i == 0 or year == years[i - 1] + 1:
+            current.append(year)
+        else:
+            if len(current) > len(longest):
+                longest = current
+            current = [year]
+
+    if len(current) > len(longest):
+        longest = current
+
+    return data[data["year"].isin(longest)]
+
 
 # ==============================================
 
@@ -195,7 +215,7 @@ def main(args_list=None):
     constituents  = ['M2', 'S2']
     tz = pytz.timezone("utc")
     start_datetime = datetime.datetime(1946,6,1,0,0,0, tzinfo=tz)
-    amp, pha = tidal_analysis(running_data, constituents, start_datetime)
+    amp, _ = tidal_analysis(running_data, constituents, start_datetime)
 
     if verbose:
         print(tide_table("Whitby", amp[0], amp[1]))
