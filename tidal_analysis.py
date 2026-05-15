@@ -203,7 +203,7 @@ def main(args_list=None):
                     help="Print progress")
 
     args = parser.parse_args(args_list)
-    dirname = args.directory
+    dirname = os.path.normpath(args.directory.strip())
     verbose = args.verbose
 
     running_data = None
@@ -217,8 +217,23 @@ def main(args_list=None):
     start_datetime = datetime.datetime(1946,6,1,0,0,0, tzinfo=tz)
     amp, _ = tidal_analysis(running_data, constituents, start_datetime)
 
+    station_map = {
+        "whitby": "Whitby",
+        "dover": "Dover",
+        "aberdeen": "Aberdeen",
+    }
+
+    station_key = os.path.basename(dirname).lower()
+    station_name = station_map.get(station_key, station_key.title())
+
+    output_text = tide_table(station_name, amp[0], amp[1])
+
     if verbose:
-        print(tide_table("Whitby", amp[0], amp[1]))
+        print(output_text)
+    else:
+        with open("output.txt", "w", encoding="utf-8") as f:
+            f.write(output_text + "\n")
+
 
 if __name__ == '__main__':
     main()
