@@ -1,9 +1,15 @@
-"""UK Tidal analysis"""
+"""UK Tidal analysis
+
+This program calculates statistics based on tidal data.
+
+Copyright 2025 by Bella Stoyanova. CC-BY-SA.
+
+"""
+
 # import the modules we need
 import datetime
 import glob
 import os
-# import math
 import argparse
 import pandas as pd
 import numpy as np
@@ -11,10 +17,6 @@ import uptide
 import pytz
 from scipy import stats
 import matplotlib.dates as mdates
-
-
-
-# ============ DONT CHANGE FNs ============
 
 def read_tidal_data(filename: str) -> pd.DataFrame:
     """Load all txt tidal data files from dirname into one sanitized DataFrame."""
@@ -49,7 +51,7 @@ def read_tidal_data(filename: str) -> pd.DataFrame:
 
     return df
 
-def extract_single_year_remove_mean(year, data):
+def extract_single_year_remove_mean(year:str, data: pd.DataFrame) -> pd.DataFrame:
     """ Extract a single year of tidal data and remove the mean sea level """
 
     year_data = data[data.index.year == int(year)].copy()
@@ -60,7 +62,7 @@ def extract_single_year_remove_mean(year, data):
     return year_data
 
 
-def extract_section_remove_mean(start, end, data):
+def extract_section_remove_mean(start: str, end: str, data: pd.DataFrame) -> pd.DataFrame:
     """Extract a section of data between two dates and remove mean sea level"""
 
     start_date = pd.to_datetime(start, format="%Y%m%d")
@@ -76,7 +78,7 @@ def extract_section_remove_mean(start, end, data):
     return year_data
 
 
-def join_data(data1, data2):
+def join_data(data1: pd.DataFrame, data2: pd.DataFrame) -> pd.DataFrame:
     """Join two tidal datasets into one DataFrame"""
 
     data = pd.concat([data1, data2])
@@ -84,7 +86,7 @@ def join_data(data1, data2):
 
     return data
 
-def sea_level_rise(data):
+def sea_level_rise(data: pd.DataFrame) -> tuple[float, float]:
     """Run linear regression to calculate sea level rise (metres per day)"""
 
     df = data.copy()
@@ -113,7 +115,9 @@ def sea_level_rise(data):
 
 
 
-def tidal_analysis(data, constituents, start_datetime):
+def tidal_analysis(data: pd.DataFrame,
+                   constituents: list[str],
+                   start_datetime: str) -> tuple[float, float]:
     """Calculate tidal amplitudes and phases from sea level data."""
 
     start_datetime = pd.Timestamp(start_datetime).tz_localize(None)
@@ -138,7 +142,7 @@ def tidal_analysis(data, constituents, start_datetime):
     return amp, pha
 
 
-def get_longest_contiguous_data(data):
+def get_longest_contiguous_data(data: pd.DataFrame) -> pd.DataFrame:
     """Returns the longest stretch of contiguous yearly data."""
 
     data = data.sort_values("year")
@@ -165,7 +169,7 @@ def get_longest_contiguous_data(data):
 # ==============================================
 
 
-def tide_table(station_name, m2, s2):
+def tide_table(station_name: str, m2: float, s2: float) -> pd.DataFrame:
     """
     Returns a formatted table string for tidal amplitudes.
 
@@ -175,13 +179,9 @@ def tide_table(station_name, m2, s2):
     s2 (float or str): S2 amplitude in meters
     """
 
-
-    m2_str = f"{m2} m" if isinstance(m2, (int, float)) else str(m2)
-    s2_str = f"{s2} m" if isinstance(s2, (int, float)) else str(s2)
-
     table = (
         f"Station Name\tM2 Amplitude\tS2 Amplitude\n"
-        f"{station_name}\t{m2_str}\t{s2_str}")
+        f"{station_name}\t\t{m2}\t\t{s2}")
 
     return table
 
@@ -212,10 +212,10 @@ def main(args_list=None):
         data = read_tidal_data(filename)
         running_data = join_data(running_data, data)
 
-    constituents  = ['M2', 'S2']
-    tz = pytz.timezone("utc")
-    start_datetime = datetime.datetime(1946,6,1,0,0,0, tzinfo=tz)
-    amp, _ = tidal_analysis(running_data, constituents, start_datetime)
+    amp, _ = tidal_analysis(
+        running_data, ['M2', 'S2'],
+        datetime.datetime(1946,6,1,0,0,0,
+                          tzinfo=pytz.timezone("utc")))
 
     station_map = {
         "whitby": "Whitby",
@@ -226,7 +226,7 @@ def main(args_list=None):
     station_key = os.path.basename(dirname).lower()
     station_name = station_map.get(station_key, station_key.title())
 
-    output_text = tide_table(station_name, amp[0], amp[1])
+    output_text = tide_table(station_name, f"{amp[0]:.3f}", f"{amp[1]:.3f}")
 
     if verbose:
         print(output_text)
