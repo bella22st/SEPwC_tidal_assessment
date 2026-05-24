@@ -17,6 +17,7 @@ import uptide
 import pytz
 from scipy import stats
 import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
 
 def read_tidal_data(filename: str) -> pd.DataFrame:
     """Load all txt tidal data files from dirname into one sanitized DataFrame."""
@@ -185,6 +186,68 @@ def tide_table(station_name: str, m2: float, s2: float) -> pd.DataFrame:
 
     return table
 
+def graph_data(data: list[pd.DataFrame]) -> None:
+    """
+    Plots a boxplot of Sea Level by year.
+
+    Each DataFrame in the list is combined and grouped by year, with
+    outliers removed using the IQR rule before plotting.
+
+    Parameters:
+    data (list[pd.DataFrame]): List of DataFrames to be plotted
+    """
+
+    if not data:
+        return
+
+    yearly_values = {}
+
+    for df in data:
+        if df is None or df.empty:
+            continue
+        if "Sea Level" not in df.columns:
+            continue
+
+        df_copy = df.copy()
+        if not isinstance(df_copy.index, pd.DatetimeIndex):
+            df_copy.index = pd.to_datetime(df_copy.index, errors="coerce")
+
+        df_copy = df_copy.dropna(subset=["Sea Level"])
+        df_copy = df_copy[df_copy.index.notna()]
+        if df_copy.empty:
+            continue
+
+        df_copy["year"] = df_copy.index.year
+        for year, group in df_copy.groupby("year"):
+            sea_level = group["Sea Level"].dropna()
+            if sea_level.empty:
+                continue
+
+            q1 = sea_level.quantile(0.25)
+            q3 = sea_level.quantile(0.75)
+            iqr = q3 - q1
+            lower = q1 - 1.5 * iqr
+            upper = q3 + 1.5 * iqr
+            cleaned = sea_level[(sea_level >= lower) & (sea_level <= upper)]
+            if cleaned.empty:
+                continue
+
+            yearly_values.setdefault(year, []).extend(cleaned.to_list())
+
+    if not yearly_values:
+        return
+
+    years = sorted(yearly_values)
+    box_data = [yearly_values[year] for year in years]
+
+    plt.figure()
+    plt.boxplot(box_data, labels=[str(year) for year in years], patch_artist=True)
+    plt.xlabel("Year")
+    plt.ylabel("Sea Level")
+    plt.title("Sea Level Distribution by Year")
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
 
 
 def main(args_list=None):
@@ -197,20 +260,32 @@ def main(args_list=None):
 
     parser.add_argument("directory",
                     help="the directory containing txt files with data")
+
     parser.add_argument('-v', '--verbose',
                     action='store_true',
                     default=False,
                     help="Print progress")
 
+    parser.add_argument('-g', '--graph_values',
+                        action="store_true",
+                        default=False,
+                        help="Graph tidal data")
+
     args = parser.parse_args(args_list)
     dirname = os.path.normpath(args.directory.strip())
     verbose = args.verbose
+    graph_values = args.graph_values
 
     running_data = None
+    data_arr = []
 
     for filename in sorted(glob.glob(os.path.join(dirname, "*.txt"))):
         data = read_tidal_data(filename)
+        data_arr.append(data)
         running_data = join_data(running_data, data)
+
+    if graph_values:
+        graph_data(data_arr)
 
     amp, _ = tidal_analysis(
         running_data, ['M2', 'S2'],
