@@ -241,11 +241,11 @@ def graph_data(data: list[pd.DataFrame]) -> None:
     box_data = [yearly_values[year] for year in years]
 
     plt.figure()
-    plt.boxplot(box_data, labels=[str(year) for year in years], patch_artist=True)
+    plt.boxplot(box_data, patch_artist=True)
     plt.xlabel("Year")
     plt.ylabel("Sea Level")
     plt.title("Sea Level Distribution by Year")
-    plt.xticks(rotation=45)
+    plt.xticks(range(1, len(years) + 1), [str(year) for year in years], rotation=45)
     plt.tight_layout()
     plt.show()
 
@@ -292,15 +292,7 @@ def main(args_list=None):
         datetime.datetime(1946,6,1,0,0,0,
                           tzinfo=pytz.timezone("utc")))
 
-    station_map = {
-        "whitby": "Whitby",
-        "dover": "Dover",
-        "aberdeen": "Aberdeen",
-    }
-
-    station_key = os.path.basename(dirname).lower()
-    station_name = station_map.get(station_key, station_key.title())
-
+    station_name = os.path.basename(dirname).replace("_", " ").title()
     output_text = tide_table(station_name, f"{amp[0]:.3f}", f"{amp[1]:.3f}")
 
     if verbose:
